@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<modification>
+    <name>Mass Actions for NewsBlog OpenCart 2.3</name>
+    <code>mass_actions_for_newsblog_oc</code>
+    <version>1.0.0</version>
+    <author>woronokin</author>
+    <description>Универсальное расширение для добавления функций массового включения/отключения
+        новостей (NewsBlog материалы) OpenCart 2.3 (ocStore 2.3)</description>
+    <link>https://nikonorow.ru</link>
+
+    <!-- Добавляем функционал массовых действий в контроллер новостей -->
+    <file path="admin/controller/newsblog/article.php">
+        <operation>
+            <search><![CDATA[protected function getList()]]></search>
+            <add position="before"><![CDATA[
+                
+                public function enable()
+	{
+		$this->load->language('newsblog/article');
+		$this->load->model('newsblog/article');
+
+		if (isset($this->request->post['selected']) && $this->validateModify()) {
+			foreach ($this->request->post['selected'] as $article_id) {
+				$this->model_newsblog_article->onarticle($article_id);
+			}
+			$this->session->data['success'] = $this->language->get('text_success');
+		} elseif (isset($this->request->get['article_id']) && $this->validateModify()) {
+			$this->model_newsblog_article->onarticle((int)$this->request->get['article_id']);
+			$this->session->data['success'] = $this->language->get('text_success');
+		}
+
+		$url = '';
+		if (isset($this->request->get['filter_name'])) {
+			$url .= '&filter_name=' . urlencode(html_entity_decode($this->request->get['filter_name'], ENT_QUOTES, 'UTF-8'));
+		}
+		if (isset($this->request->get['filter_category'])) {
+			$url .= '&filter_category=' . $this->request->get['filter_category'];
+		}
+		if (isset($this->request->get['filter_status'])) {
+			$url .= '&filter_status=' . $this->request->get['filter_status'];
+		}
+		if (isset($this->request->get['sort'])) {
+			$url .= '&sort=' . $this->request->get['sort'];
+		}
+		if (isset($this->request->get['order'])) {
+			$url .= '&order=' . $this->request->get['order'];
+		}
+		if (isset($this->request->get['page'])) {
+			$url .= '&page=' . $this->request->get['page'];
+		}
+
+		$this->response->redirect($this->url->link('newsblog/article', 'token=' . $this->session->data['token'] . $url, 'SSL'));
+	}
+
+	public function disable()
+	{
+		$this->load->language('newsblog/article');
+		$this->load->model('newsblog/article');
+
+		if (isset($this->request->post['selected']) && $this->validateModify()) {
+			foreach ($this->request->post['selected'] as $article_id) {
+				$this->model_newsblog_article->offarticle($article_id);
+			}
+			$this->session->data['success'] = $this->language->get('text_success');
+		} elseif (isset($this->request->get['article_id']) && $this->validateModify()) {
+			$this->model_newsblog_article->offarticle((int)$this->request->get['article_id']);
+			$this->session->data['success'] = $this->language->get('text_success');
+		}
+
+		$url = '';
+		if (isset($this->request->get['filter_name'])) {
+			$url .= '&filter_name=' . urlencode(html_entity_decode($this->request->get['filter_name'], ENT_QUOTES, 'UTF-8'));
+		}
+		if (isset($this->request->get['filter_category'])) {
+			$url .= '&filter_category=' . $this->request->get['filter_category'];
+		}
+		if (isset($this->request->get['filter_status'])) {
+			$url .= '&filter_status=' . $this->request->get['filter_status'];
+		}
+		if (isset($this->request->get['sort'])) {
+			$url .= '&sort=' . $this->request->get['sort'];
+		}
+		if (isset($this->request->get['order'])) {
+			$url .= '&order=' . $this->request->get['order'];
+		}
+		if (isset($this->request->get['page'])) {
+			$url .= '&page=' . $this->request->get['page'];
+		}
+
+		$this->response->redirect($this->url->link('newsblog/article', 'token=' . $this->session->data['token'] . $url, 'SSL'));
+	}]]></add>
+        </operation>
+
+        <operation>
+            <search><![CDATA[$data['delete'] = $this->url->link('newsblog/article/delete', 'token=' . $this->session->data['token'] . $url, 'SSL');]]></search>
+            <add position="after"><![CDATA[
+				$data['enable'] = $this->url->link('newsblog/article/enable', 'token=' . $this->session->data['token'] . $url, 'SSL');
+		$data['disable'] = $this->url->link('newsblog/article/disable', 'token=' . $this->session->data['token'] . $url, 'SSL');]]></add>
+        </operation>
+
+        <operation>
+            <search><![CDATA['edit'       		=> $this->url->link('newsblog/article/edit', 'token=' . $this->session->data['token'] . '&article_id=' . $result['article_id'] . $url, 'SSL')]]></search>
+            <add position="after"><![CDATA[,
+                'enable'            => $this->url->link('newsblog/article/enable', 'token=' . $this->session->data['token'] . '&article_id=' . $result['article_id'], true),
+				'disable'           => $this->url->link('newsblog/article/disable', 'token=' . $this->session->data['token'] . '&article_id=' . $result['article_id'], true)]]></add>
+        </operation>
+
+        <operation>
+            <search><![CDATA[public function autocomplete()]]></search>
+            <add position="before"><![CDATA[
+
+                protected function validateModify()
+	{
+		if (!$this->user->hasPermission('modify', 'newsblog/article')) {
+			$this->error['warning'] = $this->language->get('error_permission');
+		}
+
+		return !$this->error;
+	}]]></add>
+        </operation>
+    </file>
+
+    <!-- Добавляем функции включения и отключения в модуль новостей -->
+    <file path="admin/model/newsblog/article.php">
+        <operation>
+            <search><![CDATA[public function deletearticle($article_id)]]></search>
+            <add position="before"><![CDATA[
+                
+                public function onarticle($article_id)
+				{
+					$this->db->query("UPDATE " . DB_PREFIX . "newsblog_article SET status = '1' WHERE article_id = '" . (int)$article_id . "'");
+				}
+
+				public function offarticle($article_id)
+				{
+					$this->db->query("UPDATE " . DB_PREFIX . "newsblog_article SET status = '0' WHERE article_id = '" . (int)$article_id . "'");
+				}
+			]]></add>
+        </operation>
+    </file>
+
+    <!-- Добавляем кнопки включения и отключения выбранных новостей -->
+    <file path="admin/view/template/newsblog/article_list.tpl">
+        <operation>
+            <search><![CDATA[<button type="button" data-toggle="tooltip" title="<?php echo $button_copy; ?>" class="btn btn-default" onclick="$('#form-article').attr('action', '<?php echo $copy; ?>').submit()"><i class="fa fa-copy"></i></button>]]></search>
+            <add position="after"><![CDATA[
+				<button type="button" data-toggle="tooltip" title="Включить" class="btn btn-success" onclick="$('#form-article').attr('action', '<?php echo $enable; ?>').submit()"><i class="fa fa-toggle-on"></i></button>
+                <button type="button" data-toggle="tooltip" title="Выключить" class="btn btn-warning" onclick="$('#form-article').attr('action', '<?php echo $disable; ?>').submit()"><i class="fa fa-toggle-off"></i></button>]]></add>
+        </operation>
+    </file>
+</modification>
